@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duck Hunt</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+
+  #game-wrapper {
+    position: relative;
+    width: 800px;
+    height: 600px;
+  }
+
+  #gameCanvas {
+    display: block;
+    cursor: none;
+    image-rendering: pixelated;
+  }
+
+  #ui {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  #score-bar {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 80px;
+    background: #1a1a2e;
+    border-top: 3px solid #e94560;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 20px;
+  }
+
+  .stat {
+    text-align: center;
+    color: #fff;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: #aaa;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #e94560;
+    text-shadow: 0 0 10px #e94560;
+  }
+
+  .ammo-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .ammo-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #e94560;
+    box-shadow: 0 0 6px #e94560;
+    transition: all 0.2s;
+  }
+
+  .ammo-dot.empty {
+    background: #333;
+    box-shadow: none;
+  }
+
+  #overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    pointer-events: all;
+  }
+
+  #overlay.hidden { display: none; }
+
+  .overlay-title {
+    font-size: 60px;
+    font-weight: bold;
+    color: #e94560;
+    text-shadow: 0 0 20px #e94560, 0 0 40px #e94560;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+    animation: pulse 1.5s infinite;
+  }
+
+  .overlay-sub {
+    font-size: 18px;
+    color: #aaa;
+    margin-bottom: 40px;
+    letter-spacing: 2px;
+  }
+
+  .btn {
+    padding: 14px 40px;
+    font-size: 18px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    letter-spacing: 3px;
+    background: transparent;
+    border: 2px solid #e94560;
+    color: #e94560;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    margin: 6px;
+    pointer-events: all;
+  }
+
+  .btn:hover {
+    background: #e94560;
+    color: #fff;
+    box-shadow: 0 0 20px #e94560;
+  }
+
+  .high-score-display {
+    font-size: 14px;
+    color: #666;
+    margin-top: 20px;
+    letter-spacing: 2px;
+  }
+
+  #round-announce {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 20px #e94560;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+    letter-spacing: 4px;
+  }
+
+  #round-announce.show {
+    opacity: 1;
+  }
+
+  #combo-display {
+    position: absolute;
+    top: 120px;
+    right: 20px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  #combo-display.show { opacity: 1; }
+
+  .result-table {
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 15px;
+  }
+
+  .result-table td {
+    padding: 6px 20px;
+    border: 1px solid #333;
+    text-align: center;
+  }
+
+  .result-table tr:first-child td {
+    color: #aaa;
+    font-size: 12px;
+    letter-spacing: 2px;
+    border-bottom: 1px solid #e94560;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  #instructions {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 1px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="game-wrapper">
+  <canvas id="gameCanvas" width="800" height="520"></canvas>
+  <div id="ui">
+    <div id="score-bar">
+      <div class="stat">
+        <div class="stat-label">Score</div>
+        <div class="stat-value" id="score-val">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Round</div>
+        <div class="stat-value" id="round-val">1</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Hit %</div>
+        <div class="stat-value" id="hit-val">0%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Ammo</div>
+        <div class="ammo-dots" id="ammo-dots"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Lives</div>
+        <div class="stat-value" id="lives-val">3</div>
+      </div>
+    </div>
+
+    <div id="round-announce">ROUND 1</div>
+    <div id="combo-display"></div>
+    <div id="instructions">CLICK TO SHOOT</div>
+
+    <div id="overlay">
+      <div class="overlay-title">DUCK HUNT</div>
+      <div class="overlay-sub">CLICK THE DUCKS — DON'T MISS!</div>
+      <button class="btn" id="start-btn">START GAME</button>
+      <div class="high-score-display">BEST: <span id="best-score">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- Audio Engine ---
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+
+function playShot() {
+  const buf = AC.createBuffer(1, AC.sampleRate * 0.15, AC.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (AC.sampleRate * 0.04));
+  }
+  const src = AC.createBufferSource();
+  const gain = AC.createGain();
+  const filter = AC.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 800;
+  src.buffer = buf;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(AC.destination);
+  gain.gain.setValueAtTime(0.8, AC.currentTime);
+  src.start();
+}
+
+function playHit() {
+  const osc = AC.createOscillator();
+  const gain = AC.createGain();
+  osc.connect(gain);
+  gain.connect(AC.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(400, AC.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(100, AC.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.3, AC.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.3);
+  osc.start();
+  osc.stop(AC.currentTime + 0.3);
+}
+
+function playMiss() {
+  const osc = AC.createOscillator();
+  const gain = AC.createGain();
+  osc.connect(gain);
+  gain.connect(AC.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(200, AC.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(100, AC.currentTime + 0.4);
+  gain.gain.setValueAtTime(0.2, AC.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.4);
+  osc.start();
+  osc.stop(AC.currentTime + 0.4);
+}
+
+function playReload() {
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const osc = AC.createOscillator();
+      const gain = AC.createGain();
+      osc.connect(gain);
+      gain.connect(AC.destination);
+      osc.type = 'square';
+      osc.frequency.value = 300 + i * 100;
+      gain.gain.setValueAtTime(0.1, AC.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.1);
+      osc.start();
+      osc.stop(AC.currentTime + 0.1);
+    }, i * 100);
+  }
+}
+
+function playRoundStart() {
+  const notes = [261, 329, 392, 523];
+  notes.forEach((freq, i) => {
+    setTimeout(() => {
+      const osc = AC.createOscillator();
+      const gain = AC.createGain();
+      osc.connect(gain);
+      gain.connect(AC.destination);
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, AC.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.2);
+      osc.start();
+      osc.stop(AC.currentTime + 0.2);
+    }, i * 150);
+  });
+}
+
+// --- Game State ---
+const AMMO_MAX = 6;
+let state = 'menu'; // menu, playing, roundEnd, gameOver
+let score = 0;
+let round = 1;
+let lives = 3;
+let ammo = AMMO_MAX;
+let shots = 0;
+let hits = 0;
+let combo = 0;
+let ducks = [];
+let particles = [];
+let effects = [];
+let cursor = { x: 400, y: 260 };
+let highScore = parseInt(localStorage.getItem('dh_hs') || '0');
+let roundDucksTotal = 0;
+let roundDucksHit = 0;
+let roundDucksSpawned = 0;
+let spawnTimer = 0;
+let maxDucksPerRound = 10;
+let activeDucks = 0;
+let roundOver = false;
+let dogTimer = 0;
+let dog = null;
+let frameCount = 0;
+
+document.getElementById('best-score').textContent = highScore;
+
+// --- Duck Class ---
+class Duck {
+  constructor(round) {
+    this.w = 48;
+    this.h = 40;
+    this.alive = true;
+    this.hit = false;
+    this.falling = false;
+    this.fallVY = 0;
+    this.alpha = 1;
+    this.hitTimer = 0;
+
+    // Speed increases with round
+    const baseSpeed = 2 + round * 0.4;
+    const speed = baseSpeed + Math.random() * 2;
+
+    // Spawn from left or right
+    if (Math.random() < 0.5) {
+      this.x = -60;
+      this.vx = speed;
+      this.facing = 1;
+    } else {
+      this.x = canvas.width + 60;
+      this.vx = -speed;
+      this.facing = -1;
+    }
+
+    this.y = 80 + Math.random() * 300;
+    this.vy = (Math.random() - 0.5) * 2;
+    this.wobble = Math.random() * Math.PI * 2;
+    this.wobbleSpeed = 0.05 + Math.random() * 0.05;
+    this.wingFrame = 0;
+    this.wingTimer = 0;
+    this.color = this.randomColor();
+    this.points = Math.floor(100 + round * 20);
+    this.escaped = false;
+  }
+
+  randomColor() {
+    const colors = [
+      { body: '#4a7c59', head: '#2d5a27', beak: '#ffd700', chest: '#8b4513' },
+      { body: '#8b4513', head: '#654321', beak: '#ffa500', chest: '#d2691e' },
+      { body: '#4169e1', head: '#1e3a8a', beak: '#ffd700', chest: '#87ceeb' },
+      { body: '#dc143c', head: '#8b0000', beak: '#ffa500', chest: '#ff6b6b' },
+      { body: '#9370db', head: '#6a0dad', beak: '#ffd700', chest: '#da70d6' },
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  update() {
+    if (this.hit && !this.falling) {
+      this.hitTimer++;
+      if (this.hitTimer > 30) {
+        this.falling = true;
+        this.fallVY = -3;
+        this.vx = 0;
+      }
+      return;
+    }
+
+    if (this.falling) {
+      this.fallVY += 0.4;
+      this.y += this.fallVY;
+      this.alpha -= 0.015;
+      if (this.y > canvas.height || this.alpha <= 0) {
+        this.alive = false;
+      }
+      return;
+    }
+
+    this.wobble += this.wobbleSpeed;
+    this.x += this.vx;
+    this.vy = Math.sin(this.wobble) * 1.5;
+    this.y += this.vy;
+
+    // Bounce off top/bottom
+    if (this.y < 30) { this.y = 30; this.wobble = 0; }
+    if (this.y > 380) { this.y = 380; this.wobble = Math.PI; }
+
+    // Bounce off walls randomly or escape
+    if (this.x > canvas.width + 80 || this.x < -80) {
+      this.escaped = true;
+      this.alive = false;
+    }
+
+    // Wing animation
+    this.wingTimer++;
+    if (this.wingTimer > 6) {
+      this.wingFrame = (this.wingFrame + 1) % 3;
+      this.wingTimer = 0;
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.translate(this.x, this.y);
+    if (this.facing < 0) ctx.scale(-1, 1);
+
+    const c = this.color;
+    const wf = this.hit ? 1 : this.wingFrame;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(0, 28, 20, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wing (back)
+    ctx.fillStyle = c.body;
+    ctx.beginPath();
+    if (wf === 0) {
+      ctx.ellipse(-2, 2, 18, 8, -0.3, 0, Math.PI * 2);
+    } else if (wf === 1) {
+      ctx.ellipse(-2, -6, 18, 8, 0.3, 0, Math.PI * 2);
+    } else {
+      ctx.ellipse(-2, -12, 16, 6, 0.5, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = c.chest;
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 14, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = c.body;
+    ctx.beginPath();
+    ctx.ellipse(-2, 4, 12, 10, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head
+    ctx.fillStyle = c.head;
+    ctx.beginPath();
+    ctx.arc(10, -8, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(14, -10, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(15, -10, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Beak
+    ctx.fillStyle = c.beak;
+    ctx.beginPath();
+    ctx.moveTo(18, -8);
+    ctx.lineTo(26, -6);
+    ctx.lineTo(18, -4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Hit X eyes
+    if (this.hit) {
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(11, -13); ctx.lineTo(17, -7);
+      ctx.moveTo(17, -13); ctx.lineTo(11, -7);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  isClicked(mx, my) {
+    return !this.hit && !this.falling && !this.escaped &&
+      mx > this.x - 28 && mx < this.x + 28 &&
+      my > this.y - 24 && my < this.y + 24;
+  }
+}
+
+// --- Particle Class ---
+class Particle {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 8;
+    this.vy = (Math.random() - 0.5) * 8 - 2;
+    this.alpha = 1;
+    this.color = color || `hsl(${Math.random() * 60 + 10}, 100%, 60%)`;
+    this.size = 3 + Math.random() * 5;
+    this.gravity = 0.3;
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += this.gravity;
+    this.alpha -= 0.025;
+    this.size *= 0.97;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.alpha);
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// --- Score Float ---
+class ScoreFloat {
+  constructor(x, y, text, color) {
+    this.x = x; this.y = y;
+    this.text = text;
+    this.color = color || '#ffd700';
+    this.alpha = 1;
+    this.vy = -2;
+    this.life = 60;
+  }
+
+  update() {
+    this.y += this.vy;
+    this.vy *= 0.95;
+    this.life--;
+    this.alpha = this.life / 60;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = this.color;
+    ctx.font = 'bold 22px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.text, this.x, this.y);
+    ctx.restore();
+  }
+}
+
+// --- Draw Background ---
+function drawBackground() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height - 80);
+  sky.addColorStop(0, '#0a0a2e');
+  sky.addColorStop(0.5, '#1a1a4e');
+  sky.addColorStop(1, '#2a1a3e');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, canvas.width, canvas.height - 80);
+
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  const starPositions = [
+    [50,30],[150,20],[300,50],[450,15],[600,40],[700,25],[780,60],
+    [100,80],[250,70],[400,90],[550,60],[650,80],[730,45],
+    [30,120],[200,100],[370,130],[520,110],[670,120],[760,95]
+  ];
+  starPositions.forEach(([sx, sy]) => {
+    const flicker = 0.5 + 0.5 * Math.sin(frameCount * 0.05 + sx);
+    ctx.globalAlpha = flicker * 0.8;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // Moon
+  ctx.fillStyle = '#fffde7';
+  ctx.beginPath();
+  ctx.arc(720, 60, 35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#1a1a4e';
+  ctx.beginPath();
+  ctx.arc(730, 52, 30, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ground hills (far)
+  ctx.fillStyle = '#1a3a1a';
+  ctx.beginPath();
+  ctx.moveTo(0, 420);
+  ctx.bezierCurveTo(100, 360, 200, 400, 300, 380);
+  ctx.bezierCurveTo(400, 360, 500, 400, 600, 375);
+  ctx.bezierCurveTo(700, 350, 750, 390, 800, 380);
+  ctx.lineTo(800, 520); ctx.lineTo(0, 520);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ground (near)
+  ctx.fillStyle = '#0d2b0d';
+  ctx.beginPath();
+  ctx.moveTo(0, 450);
+  ctx.bezierCurveTo(150, 430, 300, 460, 450, 440);
+  ctx.bezierCurveTo(600, 420, 700, 450, 800, 440);
+  ctx.lineTo(800, 520); ctx.lineTo(0, 520);
+  ctx.closePath();
+  ctx.fill();
+
+  // Trees
+  drawTree(80, 450, 0.9);
+  drawTree(160, 445, 0.7);
+  drawTree(680, 448, 0.8);
+  drawTree(740, 442, 1.0);
+  drawTree(400, 440, 0.85);
+  drawTree(550, 445, 0.75);
+
+  // Bushes
+  for (let bx = 0; bx < 800; bx += 120) {
+    ctx.fillStyle = '#0a2a0a';
+    ctx.beginPath();
+    ctx.arc(bx + 40, 468, 20, 0, Math.PI * 2);
+    ctx.arc(bx + 60, 465, 15, 0, Math.PI * 2);
+    ctx.arc(bx + 20, 470, 16, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawTree(x, y, scale) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  // Trunk
+  ctx.fillStyle = '#3d2b1f';
+  ctx.fillRect(-5, -20, 10, 25);
+  // Foliage
+  ctx.fillStyle = '#0a2a0a';
+  ctx.beginPath();
+  ctx.moveTo(0, -80);
+  ctx.lineTo(30, -30);
+  ctx.lineTo(-30, -30);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, -60);
+  ctx.lineTo(25, -20);
+  ctx.lineTo(-25, -20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// --- Draw Cursor ---
+function drawCursor() {
+  const x = cursor.x, y = cursor.y;
+  ctx.save();
+  // Crosshair
+  ctx.strokeStyle = 'rgba(255, 50, 50, 0.9)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+
+  // Horizontal
+  ctx.beginPath();
+  ctx.moveTo(x - 25, y);
+  ctx.lineTo(x - 8, y);
+  ctx.moveTo(x + 8, y);
+  ctx.lineTo(x + 25, y);
+  ctx.stroke();
+
+  // Vertical
+  ctx.beginPath();
+  ctx.moveTo(x, y - 25);
+  ctx.lineTo(x, y - 8);
+  ctx.moveTo(x, y + 8);
+  ctx.lineTo(x, y + 25);
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+
+  // Center circle
+  ctx.strokeStyle = 'rgba(255, 50, 50, 0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(x, y, 7, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Center dot
+  ctx.fillStyle = 'rgba(255, 50, 50, 0.9)';
+  ctx.beginPath();
+  ctx.arc(x, y, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// --- Ammo UI ---
+function updateAmmoUI() {
+  const dots = document.getElementById('ammo-dots');
+  dots.innerHTML = '';
+  for (let i = 0; i < AMMO_MAX; i++) {
+    const d = document.createElement('div');
+    d.className = 'ammo-dot' + (i >= ammo ? ' empty' : '');
+    dots.appendChild(d);
+  }
+}
+
+function updateUI() {
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('round-val').textContent = round;
+  document.getElementById('lives-val').textContent = lives;
+  const hitPct = shots > 0 ? Math.round((hits / shots) * 100) : 0;
+  document.getElementById('hit-val').textContent = hitPct + '%';
+  updateAmmoUI();
+}
+
+// --- Spawn Ducks ---
+function spawnDuck() {
+  if (roundDucksSpawned >= maxDucksPerRound) return;
+  if (ducks.filter(d => d.alive && !d.hit).length >= Math.min(2 + Math.floor(round / 3), 5)) return;
+
+  roundDucksSpawned++;
+  ducks.push(new Duck(round));
+}
+
+// --- Round Logic ---
+function startRound() {
+  roundDucksTotal = maxDucksPerRound;
+  roundDucksHit = 0;
+  roundDucksSpawned = 0;
+  roundOver = false;
+  ducks = [];
+  spawnTimer = 0;
+  dog = null;
+  ammo = AMMO_MAX;
+  combo = 0;
+  updateUI();
+
+  const ann = document.getElementById('round-announce');
+  ann.textContent = 'ROUND ' + round;
+  ann.classList.add('show');
+  playRoundStart();
+  setTimeout(() => ann.classList.remove('show'), 2000);
+}
+
+function checkRoundEnd() {
+  const remaining = ducks.filter(d => d.alive).length;
+  const allSpawned = roundDucksSpawned >= maxDucksPerRound;
+  const allGone = ducks.every(d => !d.alive);
+
+  if (allSpawned && allGone && !roundOver) {
+    roundOver = true;
+    const hitPct = roundDucksHit / maxDucksPerRound;
+
+    setTimeout(() => {
+      if (hitPct < 0.4) {
+        // Show dog laughing effect
+        showDogLaugh();
+      }
+
+      setTimeout(() => {
+        round++;
+        maxDucksPerRound = 10 + Math.floor(round * 1.5);
+        startRound();
+      }, hitPct < 0.4 ? 2500 : 1000);
+    }, 500);
+  }
+}
+
+function showDogLaugh() {
+  effects.push({ type: 'dog', timer: 120 });
+}
+
+// --- Shoot ---
+function shoot(mx, my) {
+  if (state !== 'playing' || roundOver) return;
+  if (ammo <= 0) return;
+
+  AC.resume();
+  playShot();
+  ammo--;
+  shots++;
+  updateAmmoUI();
+
+  // Muzzle flash
+  for (let i = 0; i < 8; i++) {
+    particles.push(new Particle(mx, my, `hsl(${40 + Math.random() * 30}, 100%, ${60 + Math.random() * 20}%)`));
+  }
+
+  let gotDuck = false;
+  for (let d of ducks) {
+    if (d.isClicked(mx, my)) {
+      d.hit = true;
+      gotDuck = true;
+      hits++;
+      combo++;
+      roundDucksHit++;
+
+      // Score with combo
+      const pts = d.points * (combo >= 3 ? 2 : 1);
+      score += pts;
+
+      // Feather burst
+      for (let i = 0; i < 20; i++) {
+        particles.push(new Particle(d.x, d.y, d.color.body));
+      }
+
+      // Score float
+      let txt = '+' + pts;
+      let col = '#ffd700';
+      if (combo >= 5) { txt += ' ULTRA!'; col = '#ff4500'; }
+      else if (combo >= 3) { txt += ' COMBO!'; col = '#ff6600'; }
+      effects.push({ type: 'score', x: d.x, y: d.y - 20, text: txt, color: col, timer: 80 });
+
+      // Combo display
+      if (combo >= 2) {
+        const comboEl = document.getElementById('combo-display');
+        comboEl.textContent = `x${combo} COMBO!`;
+        comboEl.classList.add('show');
+        clearTimeout(window._comboTimeout);
+        window._comboTimeout = setTimeout(() => comboEl.classList.remove('show'), 1500);
+      }
+
+      playHit();
+      updateUI();
+      break;
+    }
+  }
+
+  if (!gotDuck) {
+    combo = 0;
+    playMiss();
+  }
+
+  // Auto-reload when empty
+  if (ammo <= 0) {
+    setTimeout(() => {
+      ammo = AMMO_MAX;
+      playReload();
+      updateAmmoUI();
+    }, 800);
+  }
+
+  // Duck escaped or out of ammo (life lost)
+}
+
+// --- Game Over ---
+function gameOver() {
+  state = 'gameOver';
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('dh_hs', highScore);
+  }
+
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <div class="overlay-title" style="font-size:50px;">GAME OVER</div>
+    <div class="overlay-sub">THE DUCKS ESCAPED!</div>
+    <table class="result-table">
+      <tr><td>SCORE</td><td>ROUND</td><td>ACCURACY</td></tr>
+      <tr>
+        <td style="color:#e94560;font-size:24px;">${score}</td>
+        <td style="color:#ffd700;font-size:24px;">${round}</td>
+        <td style="color:#00ff88;font-size:24px;">${shots > 0 ? Math.round((hits/shots)*100) : 0}%</td>
+      </tr>
+    </table>
+    ${score >= highScore && score > 0 ? '<div style="color:#ffd700;font-size:14px;letter-spacing:2px;margin-bottom:10px;">NEW HIGH SCORE!</div>' : ''}
+    <div class="high-score-display" style="margin-bottom:20px;">BEST: ${highScore}</div>
+    <button class="btn" onclick="initGame()">PLAY AGAIN</button>
+  `;
+  ov.classList.remove('hidden');
+}
+
+// --- Init ---
+function initGame() {
+  score = 0; round = 1; lives = 3; shots = 0; hits = 0; combo = 0;
+  ammo = AMMO_MAX;
+  maxDucksPerRound = 10;
+  ducks = []; particles = []; effects = [];
+  state = 'playing';
+
+  const ov = document.getElementById('overlay');
+  ov.classList.add('hidden');
+
+  startRound();
+  updateUI();
+}
+
+// --- Main Loop ---
+function gameLoop() {
+  frameCount++;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (state === 'playing' || state === 'gameOver') {
+    drawBackground();
+
+    // Spawn ducks
+    if (state === 'playing' && !roundOver) {
+      spawnTimer++;
+      if (spawnTimer > Math.max(60 - round * 3, 20)) {
+        spawnTimer = 0;
+        spawnDuck();
+      }
+    }
+
+    // Update & draw ducks
+    for (let d of ducks) {
+      d.update();
+      d.draw();
+    }
+
+    // Check for escaped ducks
+    const escaped = ducks.filter(d => d.escaped && d.alive === false && !d._counted);
+    escaped.forEach(d => {
+      d._counted = true;
+      combo = 0;
+    });
+
+    // Particles
+    particles = particles.filter(p => p.alpha > 0);
+    particles.forEach(p => { p.update(); p.draw(); });
+
+    // Effects
+    effects = effects.filter(e => e.timer > 0);
+    effects.forEach(e => {
+      e.timer--;
+      if (e.type === 'score') {
+        e.y -= 0.5;
+        ctx.save();
+        ctx.globalAlpha = e.timer / 80;
+        ctx.fillStyle = e.color;
+        ctx.font = 'bold 22px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText(e.text, e.x, e.y);
+        ctx.restore();
+      } else if (e.type === 'dog') {
+        // Draw laughing dog
+        const dogX = 400, dogY = 420;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, e.timer / 20);
+        // Dog body
+        ctx.fillStyle = '#a0522d';
+        ctx.fillRect(dogX - 30, dogY - 60, 60, 50);
+        // Dog head
+        ctx.beginPath();
+        ctx.arc(dogX, dogY - 70, 25, 0, Math.PI * 2);
+        ctx.fill();
+        // Ears
+        ctx.fillRect(dogX - 40, dogY - 90, 18, 30);
+        ctx.fillRect(dogX + 22, dogY - 90, 18, 30);
+        // Eyes (closed, laughing)
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(dogX - 10, dogY - 75, 5, Math.PI, 0);
+        ctx.arc(dogX + 10, dogY - 75, 5, Math.PI, 0);
+        ctx.stroke();
+        // Mouth (big grin)
+        ctx.beginPath();
+        ctx.arc(dogX, dogY - 60, 12, 0, Math.PI);
+        ctx.stroke();
+        // Ha Ha text
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 20px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('HA HA HA!', dogX, dogY - 110);
+        ctx.restore();
+      }
+    });
+
+    checkRoundEnd();
+    drawCursor();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// --- Events ---
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  cursor.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  cursor.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+  AC.resume();
+  shoot(mx, my);
+});
+
+// Prevent right-click
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  AC.resume();
+  initGame();
+});
+
+// Start loop
+gameLoop();
+</script>
+</body>
+</html>
