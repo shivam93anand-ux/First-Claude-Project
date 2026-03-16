@@ -13,3 +13,13 @@ desktop.ini
 # Environment files
 .env
 .env.local
+
+# Node
+node_modules/
+
+# Travel diary
+travel-diary/server/uploads/*
+!travel-diary/server/uploads/.gitkeep
+travel-diary/server/*.db
+travel-diary/server/public/
+travel-diary/client/dist/
