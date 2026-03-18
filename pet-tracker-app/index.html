@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>PetCare Clinic Tracker</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #dc2626;
+    --orange: #ea580c;
+    --purple: #7c3aed;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: 80px;
+  }
+
+  /* ===== Login Screen ===== */
+  .login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: white;
+  }
+  .login-screen.hidden { display: none; }
+  .login-logo { font-size: 64px; margin-bottom: 16px; }
+  .login-screen h1 { font-size: 24px; margin-bottom: 8px; }
+  .login-screen p { color: #94a3b8; margin-bottom: 32px; text-align: center; font-size: 14px; }
+  .login-form { width: 100%; max-width: 360px; }
+  .login-form input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #475569;
+    border-radius: 12px;
+    font-size: 16px;
+    margin-bottom: 12px;
+    background: #1e293b;
+    color: white;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .login-form input:focus { border-color: var(--primary); }
+  .login-form input::placeholder { color: #64748b; }
+  .login-form button {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .login-form button:hover { background: var(--primary-dark); }
+  .login-form .helper { font-size: 12px; color: #64748b; text-align: center; margin-top: 12px; }
+
+  /* ===== App (hidden until logged in) ===== */
+  .app-container { display: none; }
+  .app-container.visible { display: block; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header .team-info { font-size: 11px; opacity: 0.7; }
+  .header-actions { display: flex; gap: 6px; align-items: center; }
+  .header-actions button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .header-actions button:hover { background: rgba(255,255,255,0.35); }
+  .sync-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #4ade80;
+    display: inline-block;
+    margin-right: 4px;
+  }
+  .sync-dot.offline { background: var(--danger); }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    display: flex;
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--text-light);
+    font-size: 10px;
+    font-weight: 600;
+    gap: 2px;
+    transition: color 0.2s;
+  }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { font-size: 20px; }
+  .nav-item .badge {
+    position: absolute;
+    top: 2px;
+    right: calc(50% - 18px);
+    background: var(--danger);
+    color: white;
+    font-size: 10px;
+    padding: 0 5px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+  .nav-item { position: relative; }
+
+  /* Content */
+  .content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px 16px;
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .stat-card .label { font-size: 11px; color: var(--text-light); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 26px; font-weight: 800; }
+  .stat-card.due .value { color: var(--danger); }
+  .stat-card.pending .value { color: var(--warning); }
+  .stat-card.ordered .value { color: var(--success); }
+  .stat-card.total .value { color: var(--primary); }
+
+  /* Section */
+  .section-header {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .count {
+    background: var(--danger);
+    color: white;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+  }
+
+  /* Visit Cards */
+  .visit-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid var(--border);
+  }
+  .visit-card.status-doctor-unavailable { border-left-color: var(--orange); }
+  .visit-card.status-samples-given { border-left-color: var(--warning); }
+  .visit-card.status-order-received { border-left-color: var(--success); }
+  .visit-card.status-no-order { border-left-color: var(--danger); }
+  .visit-card.status-follow-up-scheduled { border-left-color: var(--purple); }
+  .visit-card.status-visit-later { border-left-color: var(--text-light); }
+
+  .visit-card .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+  .visit-card .clinic-name { font-weight: 700; font-size: 15px; line-height: 1.2; }
+  .visit-card .visit-date { font-size: 11px; color: var(--text-light); white-space: nowrap; margin-left: 8px; }
+  .visit-card .doctor-name { font-size: 12px; color: var(--text-light); margin-bottom: 6px; }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+  }
+  .status-badge.doctor-unavailable { background: var(--orange); }
+  .status-badge.samples-given { background: var(--warning); color: #000; }
+  .status-badge.order-received { background: var(--success); }
+  .status-badge.no-order { background: var(--danger); }
+  .status-badge.follow-up-scheduled { background: var(--purple); }
+  .status-badge.visit-later { background: var(--text-light); }
+
+  .visit-card .meta-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-light);
+    flex-wrap: wrap;
+  }
+  .overdue { color: var(--danger) !important; font-weight: 700; }
+  .due-today { color: var(--warning) !important; font-weight: 700; }
+  .visit-card .notes-text { font-size: 12px; color: var(--text-light); margin-top: 6px; font-style: italic; }
+  .visit-card .actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .visit-card .actions button {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .btn-log { border-color: var(--primary) !important; color: var(--primary); }
+  .btn-edit { border-color: var(--text-light) !important; color: var(--text-light); }
+  .btn-delete { border-color: var(--danger) !important; color: var(--danger); }
+
+  /* Clinic items */
+  .clinic-item {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .clinic-item .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .clinic-item .name { font-weight: 700; font-size: 15px; }
+  .clinic-item .type-tag { font-size: 10px; color: var(--text-light); background: var(--bg); padding: 2px 8px; border-radius: 10px; }
+  .clinic-item .detail { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+  .clinic-item .clinic-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .clinic-item .clinic-actions button {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 72px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-size: 26px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  /* Search & filter */
+  .search-bar {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    outline: none;
+    background: var(--card);
+  }
+  .search-bar:focus { border-color: var(--primary); }
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px 18px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @media (min-width: 600px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 16px; max-height: 80vh; }
+  }
+  .modal h2 { font-size: 17px; margin-bottom: 14px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 3px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); }
+  .form-group textarea { resize: vertical; min-height: 50px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-cancel { background: var(--bg); color: var(--text); }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 8px; }
+  .empty-state p { font-size: 13px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 300;
+    animation: fadeIn 0.3s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div class="login-screen" id="login-screen">
+  <div class="login-logo">🐾</div>
+  <h1>PetCare Tracker</h1>
+  <p>Track clinic visits, follow-ups & orders.<br>Real-time sync between your team.</p>
+  <div class="login-form">
+    <input type="text" id="login-name" placeholder="Your name (e.g., Rahul)" autocomplete="off">
+    <input type="text" id="login-team" placeholder="Team code (e.g., petcare-mumbai)" autocomplete="off">
+    <button onclick="joinTeam()">Join Team</button>
+    <div class="helper">Both team members use the same team code to sync data</div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="app-container" id="app">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>PetCare Tracker</h1>
+        <div class="team-info"><span class="sync-dot" id="sync-dot"></span><span id="team-label"></span></div>
+      </div>
+      <div class="header-actions">
+        <button onclick="exportData()">Export</button>
+        <button onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Contents -->
+  <div class="content tab-content" id="tab-dashboard">
+    <div class="stats">
+      <div class="stat-card due"><div class="label">Due / Overdue</div><div class="value" id="stat-due">0</div></div>
+      <div class="stat-card pending"><div class="label">Samples Pending</div><div class="value" id="stat-pending">0</div></div>
+      <div class="stat-card ordered"><div class="label">Orders (Month)</div><div class="value" id="stat-orders">0</div></div>
+      <div class="stat-card total"><div class="label">Total Clinics</div><div class="value" id="stat-clinics">0</div></div>
+    </div>
+    <div class="section-header" id="overdue-header">Overdue <span class="count" id="overdue-count"></span></div>
+    <div id="overdue-list"></div>
+    <div class="section-header">Due Today</div>
+    <div id="today-list"></div>
+    <div class="section-header">Upcoming (3 Days)</div>
+    <div id="upcoming-list"></div>
+  </div>
+
+  <div class="content tab-content hidden" id="tab-visits">
+    <input type="text" class="search-bar" placeholder="Search clinic, doctor, notes..." oninput="renderVisits()" id="visit-search">
+    <div class="filter-row">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="doctor-unavailable" onclick="setFilter('doctor-unavailable')">Dr. Unavailable</button>
+      <button class="filter-btn" data-filter="samples-given" onclick="setFilter('samples-given')">Samples Given</button>
+      <button class="filter-btn" data-filter="follow-up-scheduled" onclick="setFilter('follow-up-scheduled')">Follow-up</button>
+      <button class="filter-btn" data-filter="order-received" onclick="setFilter('order-received')">Ordered</button>
+      <button class="filter-btn" data-filter="no-order" onclick="setFilter('no-order')">No Order</button>
+    </div>
+    <div id="visits-list"></div>
+  </div>
+
+  <div class="content tab-content hidden" id="tab-clinics">
+    <input type="text" class="search-bar" placeholder="Search clinics..." oninput="renderClinics()" id="clinic-search">
+    <div id="clinics-list"></div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openAddVisit()">+</button>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <span class="nav-icon">📊</span>Dashboard
+      <span class="badge hidden" id="nav-badge"></span>
+    </button>
+    <button class="nav-item" data-tab="visits" onclick="switchTab('visits')">
+      <span class="nav-icon">📋</span>Visits
+    </button>
+    <button class="nav-item" data-tab="clinics" onclick="switchTab('clinics')">
+      <span class="nav-icon">🏥</span>Clinics
+    </button>
+  </nav>
+</div>
+
+<!-- ===== MODAL: Visit ===== -->
+<div class="modal-overlay" id="modal-visit">
+  <div class="modal">
+    <h2 id="modal-visit-title">Log Clinic Visit</h2>
+    <input type="hidden" id="v-id">
+    <div class="form-group">
+      <label>Clinic Name *</label>
+      <input type="text" id="v-clinic" list="clinic-suggestions" placeholder="Type or select clinic...">
+      <datalist id="clinic-suggestions"></datalist>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Type</label>
+        <select id="v-clinic-type">
+          <option value="clinic">Pet Clinic</option>
+          <option value="store">Pet Store</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Visit Date *</label>
+        <input type="date" id="v-date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Doctor / Contact</label>
+      <input type="text" id="v-doctor" placeholder="Dr. name or contact">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status *</label>
+        <select id="v-status">
+          <option value="doctor-unavailable">Doctor Unavailable</option>
+          <option value="samples-given">Samples Given</option>
+          <option value="follow-up-scheduled">Follow-up Scheduled</option>
+          <option value="order-received">Order Received</option>
+          <option value="no-order">No Order</option>
+          <option value="visit-later">Visit Later</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Follow-up Date</label>
+        <input type="date" id="v-followup">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Products Sampled / Ordered</label>
+      <input type="text" id="v-products" placeholder="Joint Support, Skin Coat...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Order Amount</label>
+        <input type="number" id="v-amount" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label>Logged By</label>
+        <input type="text" id="v-person" placeholder="Your name" readonly>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="v-notes" placeholder="Additional details..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeModal('modal-visit')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVisit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Clinic ===== -->
+<div class="modal-overlay" id="modal-clinic">
+  <div class="modal">
+    <h2 id="modal-clinic-title">Add Clinic</h2>
+    <input type="hidden" id="c-id">
+    <div class="form-group">
+      <label>Clinic / Store Name *</label>
+      <input type="text" id="c-name">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Type</label>
+        <select id="c-type">
+          <option value="clinic">Pet Clinic</option>
+          <option value="store">Pet Store</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="c-phone" placeholder="Phone number">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Doctor / Contact</label>
+      <input type="text" id="c-doctor">
+    </div>
+    <div class="form-group">
+      <label>Address / Area</label>
+      <input type="text" id="c-address" placeholder="Location">
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="c-notes" placeholder="Best time to visit, etc."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeModal('modal-clinic')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClinic()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (modular compat for simplicity) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ============================================================
+//  FIREBASE CONFIG — Replace with YOUR Firebase project config
+// ============================================================
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Enable offline persistence so app works without internet
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+// ============================================================
+//  SESSION
+// ============================================================
+let currentUser = '';
+let teamCode = '';
+let visits = [];
+let clinics = [];
+let currentFilter = 'all';
+let currentTab = 'dashboard';
+let unsubVisits = null;
+let unsubClinics = null;
+
+function getSession() {
+  return JSON.parse(localStorage.getItem('petcare_session') || 'null');
+}
+
+function setSession(name, team) {
+  localStorage.setItem('petcare_session', JSON.stringify({ name, team }));
+}
+
+function clearSession() {
+  localStorage.removeItem('petcare_session');
+}
+
+// ============================================================
+//  LOGIN / LOGOUT
+// ============================================================
+function joinTeam() {
+  const name = document.getElementById('login-name').value.trim();
+  const team = document.getElementById('login-team').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  if (!name || !team) {
+    showToast('Please enter your name and team code');
+    return;
+  }
+  currentUser = name;
+  teamCode = team;
+  setSession(name, team);
+  startApp();
+}
+
+function logout() {
+  if (!confirm('Logout? Your data is saved in the cloud.')) return;
+  if (unsubVisits) unsubVisits();
+  if (unsubClinics) unsubClinics();
+  clearSession();
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+function startApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('team-label').textContent = `${currentUser} · ${teamCode}`;
+  document.getElementById('v-person').value = currentUser;
+  subscribeToData();
+  requestNotificationPermission();
+}
+
+// ============================================================
+//  FIRESTORE REAL-TIME SYNC
+// ============================================================
+function teamRef(collection) {
+  return db.collection('teams').doc(teamCode).collection(collection);
+}
+
+function subscribeToData() {
+  // Listen to visits
+  unsubVisits = teamRef('visits').orderBy('date', 'desc').onSnapshot(snap => {
+    visits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAll();
+    updateSyncStatus(true);
+  }, err => {
+    console.error('Visits sync error:', err);
+    updateSyncStatus(false);
+  });
+
+  // Listen to clinics
+  unsubClinics = teamRef('clinics').orderBy('name').onSnapshot(snap => {
+    clinics = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAll();
+  }, err => {
+    console.error('Clinics sync error:', err);
+  });
+}
+
+function updateSyncStatus(online) {
+  const dot = document.getElementById('sync-dot');
+  dot.classList.toggle('offline', !online);
+}
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function daysUntil(d) {
+  if (!d) return Infinity;
+  const today = new Date(todayStr() + 'T00:00:00');
+  const target = new Date(d + 'T00:00:00');
+  return Math.round((target - today) / 86400000);
+}
+
+function statusLabel(s) {
+  return { 'doctor-unavailable':'Doctor Unavailable', 'samples-given':'Samples Given', 'follow-up-scheduled':'Follow-up Scheduled', 'order-received':'Order Received', 'no-order':'No Order', 'visit-later':'Visit Later' }[s] || s;
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  renderAll();
+}
+
+// ============================================================
+//  MODALS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); });
+});
+
+function updateClinicSuggestions() {
+  const dl = document.getElementById('clinic-suggestions');
+  dl.innerHTML = '';
+  const names = new Set(clinics.map(c => c.name));
+  visits.forEach(v => names.add(v.clinic));
+  [...names].sort().forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    dl.appendChild(opt);
+  });
+}
+
+// ============================================================
+//  VISIT CRUD
+// ============================================================
+function openAddVisit() {
+  document.getElementById('modal-visit-title').textContent = 'Log Clinic Visit';
+  document.getElementById('v-id').value = '';
+  document.getElementById('v-clinic').value = '';
+  document.getElementById('v-clinic-type').value = 'clinic';
+  document.getElementById('v-doctor').value = '';
+  document.getElementById('v-date').value = todayStr();
+  document.getElementById('v-status').value = 'samples-given';
+  document.getElementById('v-followup').value = '';
+  document.getElementById('v-products').value = '';
+  document.getElementById('v-amount').value = '';
+  document.getElementById('v-notes').value = '';
+  document.getElementById('v-person').value = currentUser;
+  updateClinicSuggestions();
+  openModal('modal-visit');
+}
+
+function editVisit(id) {
+  const v = visits.find(x => x.id === id);
+  if (!v) return;
+  document.getElementById('modal-visit-title').textContent = 'Edit Visit';
+  document.getElementById('v-id').value = v.id;
+  document.getElementById('v-clinic').value = v.clinic;
+  document.getElementById('v-clinic-type').value = v.clinicType || 'clinic';
+  document.getElementById('v-doctor').value = v.doctor || '';
+  document.getElementById('v-date').value = v.date;
+  document.getElementById('v-status').value = v.status;
+  document.getElementById('v-followup').value = v.followup || '';
+  document.getElementById('v-products').value = v.products || '';
+  document.getElementById('v-amount').value = v.amount || '';
+  document.getElementById('v-notes').value = v.notes || '';
+  document.getElementById('v-person').value = v.person || currentUser;
+  updateClinicSuggestions();
+  openModal('modal-visit');
+}
+
+async function saveVisit() {
+  const clinic = document.getElementById('v-clinic').value.trim();
+  const date = document.getElementById('v-date').value;
+  const status = document.getElementById('v-status').value;
+  if (!clinic || !date || !status) { showToast('Fill required fields'); return; }
+
+  const visitData = {
+    clinic,
+    clinicType: document.getElementById('v-clinic-type').value,
+    doctor: document.getElementById('v-doctor').value.trim(),
+    date,
+    status,
+    followup: document.getElementById('v-followup').value || null,
+    products: document.getElementById('v-products').value.trim(),
+    amount: parseFloat(document.getElementById('v-amount').value) || 0,
+    notes: document.getElementById('v-notes').value.trim(),
+    person: document.getElementById('v-person').value.trim() || currentUser,
+    updatedAt: new Date().toISOString()
+  };
+
+  try {
+    const editId = document.getElementById('v-id').value;
+    if (editId) {
+      await teamRef('visits').doc(editId).update(visitData);
+    } else {
+      visitData.createdAt = new Date().toISOString();
+      await teamRef('visits').add(visitData);
+    }
+
+    // Auto-add clinic if new
+    const exists = clinics.find(c => c.name.toLowerCase() === clinic.toLowerCase());
+    if (!exists) {
+      await teamRef('clinics').add({
+        name: clinic,
+        type: visitData.clinicType,
+        doctor: visitData.doctor,
+        address: '',
+        phone: '',
+        notes: ''
+      });
+    }
+
+    closeModal('modal-visit');
+    showToast(editId ? 'Visit updated' : 'Visit logged');
+  } catch (err) {
+    showToast('Error saving: ' + err.message);
+  }
+}
+
+async function deleteVisit(id) {
+  if (!confirm('Delete this visit?')) return;
+  try {
+    await teamRef('visits').doc(id).delete();
+    showToast('Deleted');
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+}
+
+function logFollowUp(id) {
+  const v = visits.find(x => x.id === id);
+  if (!v) return;
+  document.getElementById('modal-visit-title').textContent = 'Log Follow-up';
+  document.getElementById('v-id').value = '';
+  document.getElementById('v-clinic').value = v.clinic;
+  document.getElementById('v-clinic-type').value = v.clinicType || 'clinic';
+  document.getElementById('v-doctor').value = v.doctor || '';
+  document.getElementById('v-date').value = todayStr();
+  document.getElementById('v-status').value = 'follow-up-scheduled';
+  document.getElementById('v-followup').value = '';
+  document.getElementById('v-products').value = v.products || '';
+  document.getElementById('v-amount').value = '';
+  document.getElementById('v-notes').value = '';
+  document.getElementById('v-person').value = currentUser;
+  updateClinicSuggestions();
+  openModal('modal-visit');
+}
+
+// ============================================================
+//  CLINIC CRUD
+// ============================================================
+function openAddClinic() {
+  document.getElementById('modal-clinic-title').textContent = 'Add Clinic';
+  document.getElementById('c-id').value = '';
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-type').value = 'clinic';
+  document.getElementById('c-doctor').value = '';
+  document.getElementById('c-address').value = '';
+  document.getElementById('c-phone').value = '';
+  document.getElementById('c-notes').value = '';
+  openModal('modal-clinic');
+}
+
+function editClinic(id) {
+  const c = clinics.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('modal-clinic-title').textContent = 'Edit Clinic';
+  document.getElementById('c-id').value = c.id;
+  document.getElementById('c-name').value = c.name;
+  document.getElementById('c-type').value = c.type || 'clinic';
+  document.getElementById('c-doctor').value = c.doctor || '';
+  document.getElementById('c-address').value = c.address || '';
+  document.getElementById('c-phone').value = c.phone || '';
+  document.getElementById('c-notes').value = c.notes || '';
+  openModal('modal-clinic');
+}
+
+async function saveClinic() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { showToast('Name is required'); return; }
+
+  const clinicData = {
+    name,
+    type: document.getElementById('c-type').value,
+    doctor: document.getElementById('c-doctor').value.trim(),
+    address: document.getElementById('c-address').value.trim(),
+    phone: document.getElementById('c-phone').value.trim(),
+    notes: document.getElementById('c-notes').value.trim()
+  };
+
+  try {
+    const editId = document.getElementById('c-id').value;
+    if (editId) {
+      await teamRef('clinics').doc(editId).update(clinicData);
+    } else {
+      await teamRef('clinics').add(clinicData);
+    }
+    closeModal('modal-clinic');
+    showToast(editId ? 'Clinic updated' : 'Clinic added');
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+}
+
+async function deleteClinic(id) {
+  const c = clinics.find(x => x.id === id);
+  if (!confirm(`Delete "${c?.name}"?`)) return;
+  try {
+    await teamRef('clinics').doc(id).delete();
+    showToast('Deleted');
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+}
+
+// ============================================================
+//  RENDERING
+// ============================================================
+function renderVisitCard(v, showActions = true) {
+  const days = daysUntil(v.followup);
+  let dueClass = '', dueText = '';
+  if (v.followup) {
+    if (days < 0) { dueClass = 'overdue'; dueText = `Overdue ${Math.abs(days)}d`; }
+    else if (days === 0) { dueClass = 'due-today'; dueText = 'Due today'; }
+    else { dueText = `In ${days}d`; }
+  }
+  return `
+    <div class="visit-card status-${v.status}">
+      <div class="top-row">
+        <div class="clinic-name">${escHtml(v.clinic)}</div>
+        <div class="visit-date">${formatDate(v.date)}</div>
+      </div>
+      ${v.doctor ? `<div class="doctor-name">Dr. ${escHtml(v.doctor)}</div>` : ''}
+      <span class="status-badge ${v.status}">${statusLabel(v.status)}</span>
+      <div class="meta-row">
+        ${v.followup ? `<span class="${dueClass}">Follow-up: ${formatDate(v.followup)} (${dueText})</span>` : ''}
+        ${v.products ? `<span>Products: ${escHtml(v.products)}</span>` : ''}
+        ${v.amount ? `<span>Amt: ₹${v.amount}</span>` : ''}
+        ${v.person ? `<span>By: ${escHtml(v.person)}</span>` : ''}
+      </div>
+      ${v.notes ? `<div class="notes-text">"${escHtml(v.notes)}"</div>` : ''}
+      ${showActions ? `
+      <div class="actions">
+        <button class="btn-log" onclick="logFollowUp('${v.id}')">Follow-up</button>
+        <button class="btn-edit" onclick="editVisit('${v.id}')">Edit</button>
+        <button class="btn-delete" onclick="deleteVisit('${v.id}')">Delete</button>
+      </div>` : ''}
+    </div>`;
+}
+
+function renderDashboard() {
+  const today = todayStr();
+  const monthStart = today.slice(0, 7);
+
+  // Latest visit per clinic
+  const latest = {};
+  [...visits].sort((a, b) => a.date.localeCompare(b.date)).forEach(v => {
+    latest[v.clinic.toLowerCase()] = v;
+  });
+  const latestArr = Object.values(latest);
+  const active = latestArr.filter(v => v.status !== 'order-received' && v.status !== 'no-order');
+
+  const overdue = active.filter(v => v.followup && daysUntil(v.followup) < 0);
+  const dueToday = active.filter(v => v.followup && daysUntil(v.followup) === 0);
+  const upcoming = active.filter(v => v.followup && daysUntil(v.followup) > 0 && daysUntil(v.followup) <= 3);
+  const pending = latestArr.filter(v => v.status === 'samples-given' || v.status === 'follow-up-scheduled');
+  const monthOrders = visits.filter(v => v.status === 'order-received' && v.date.startsWith(monthStart));
+
+  document.getElementById('stat-due').textContent = overdue.length + dueToday.length;
+  document.getElementById('stat-pending').textContent = pending.length;
+  document.getElementById('stat-orders').textContent = monthOrders.length;
+  document.getElementById('stat-clinics').textContent = clinics.length;
+
+  // Nav badge
+  const badge = document.getElementById('nav-badge');
+  const total = overdue.length + dueToday.length;
+  if (total > 0) { badge.textContent = total; badge.classList.remove('hidden'); }
+  else { badge.classList.add('hidden'); }
+
+  // Overdue
+  const oh = document.getElementById('overdue-header');
+  const ol = document.getElementById('overdue-list');
+  if (overdue.length) {
+    oh.classList.remove('hidden');
+    document.getElementById('overdue-count').textContent = overdue.length;
+    ol.innerHTML = overdue.sort((a, b) => a.followup.localeCompare(b.followup)).map(v => renderVisitCard(v)).join('');
+  } else {
+    oh.classList.add('hidden');
+    ol.innerHTML = '';
+  }
+
+  // Today
+  document.getElementById('today-list').innerHTML = dueToday.length
+    ? dueToday.map(v => renderVisitCard(v)).join('')
+    : '<div class="empty-state"><p>No follow-ups due today</p></div>';
+
+  // Upcoming
+  document.getElementById('upcoming-list').innerHTML = upcoming.length
+    ? upcoming.sort((a, b) => a.followup.localeCompare(b.followup)).map(v => renderVisitCard(v)).join('')
+    : '<div class="empty-state"><p>Nothing in next 3 days</p></div>';
+}
+
+function renderVisits() {
+  const search = document.getElementById('visit-search').value.toLowerCase();
+  let filtered = [...visits];
+  if (currentFilter !== 'all') filtered = filtered.filter(v => v.status === currentFilter);
+  if (search) filtered = filtered.filter(v =>
+    v.clinic.toLowerCase().includes(search) ||
+    (v.doctor || '').toLowerCase().includes(search) ||
+    (v.notes || '').toLowerCase().includes(search) ||
+    (v.products || '').toLowerCase().includes(search)
+  );
+
+  document.getElementById('visits-list').innerHTML = filtered.length
+    ? filtered.map(v => renderVisitCard(v)).join('')
+    : '<div class="empty-state"><div class="icon">📋</div><p>No visits found. Tap + to log one.</p></div>';
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  renderVisits();
+}
+
+function renderClinics() {
+  const search = document.getElementById('clinic-search').value.toLowerCase();
+  let filtered = [...clinics];
+  if (search) filtered = filtered.filter(c =>
+    c.name.toLowerCase().includes(search) ||
+    (c.doctor || '').toLowerCase().includes(search) ||
+    (c.address || '').toLowerCase().includes(search)
+  );
+
+  if (!filtered.length) {
+    document.getElementById('clinics-list').innerHTML = `
+      <div class="empty-state"><div class="icon">🏥</div><p>No clinics yet.</p></div>
+      <div style="text-align:center;margin-top:12px"><button class="btn btn-primary" style="padding:10px 24px;border:none;border-radius:8px;cursor:pointer;background:var(--primary);color:white" onclick="openAddClinic()">Add First Clinic</button></div>`;
+    return;
+  }
+
+  document.getElementById('clinics-list').innerHTML = filtered.map(c => {
+    const cv = visits.filter(v => v.clinic.toLowerCase() === c.name.toLowerCase());
+    const last = cv[0]; // already sorted desc
+    return `
+      <div class="clinic-item">
+        <div>
+          <div class="top">
+            <span class="name">${escHtml(c.name)}</span>
+            <span class="type-tag">${c.type === 'store' ? 'Store' : 'Clinic'}</span>
+          </div>
+          ${c.doctor ? `<div class="detail">Dr. ${escHtml(c.doctor)}</div>` : ''}
+          ${c.address ? `<div class="detail">${escHtml(c.address)}</div>` : ''}
+          ${c.phone ? `<div class="detail">Ph: ${escHtml(c.phone)}</div>` : ''}
+          <div class="detail">${cv.length} visit${cv.length !== 1 ? 's' : ''}${last ? ` · Last: ${formatDate(last.date)} · ${statusLabel(last.status)}` : ''}</div>
+        </div>
+        <div class="clinic-actions">
+          <button onclick="editClinic('${c.id}')">Edit</button>
+          <button style="color:var(--danger)" onclick="deleteClinic('${c.id}')">Del</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderAll() {
+  if (currentTab === 'dashboard') renderDashboard();
+  if (currentTab === 'visits') renderVisits();
+  if (currentTab === 'clinics') renderClinics();
+}
+
+// ============================================================
+//  EXPORT
+// ============================================================
+function exportData() {
+  const blob = new Blob([JSON.stringify({ visits, clinics, team: teamCode, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `petcare-${teamCode}-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Exported');
+}
+
+// ============================================================
+//  NOTIFICATIONS
+// ============================================================
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function checkReminders() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const today = todayStr();
+  const latest = {};
+  visits.forEach(v => {
+    const k = v.clinic.toLowerCase();
+    if (!latest[k] || v.date > latest[k].date) latest[k] = v;
+  });
+  const due = Object.values(latest).filter(v =>
+    v.followup && v.followup <= today && v.status !== 'order-received' && v.status !== 'no-order'
+  );
+  if (due.length > 0) {
+    const key = 'petcare_notif_' + today;
+    if (!sessionStorage.getItem(key)) {
+      new Notification('PetCare Follow-ups Due', {
+        body: `${due.length} clinic${due.length > 1 ? 's' : ''} need follow-up!`
+      });
+      sessionStorage.setItem(key, '1');
+    }
+  }
+}
+
+setInterval(checkReminders, 30 * 60 * 1000);
+
+// ============================================================
+//  SERVICE WORKER
+// ============================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+const session = getSession();
+if (session) {
+  currentUser = session.name;
+  teamCode = session.team;
+  startApp();
+}
+</script>
+</body>
+</html>
