@@ -633,19 +633,28 @@
 //  FIREBASE CONFIG — Replace with YOUR Firebase project config
 // ============================================================
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCjACfpM4uLWrN9aqWcQKS3ItPO0nXV6Mw",
+  authDomain: "petcare-tracker-vettofit.firebaseapp.com",
+  projectId: "petcare-tracker-vettofit",
+  storageBucket: "petcare-tracker-vettofit.firebasestorage.app",
+  messagingSenderId: "1042233724503",
+  appId: "1:1042233724503:web:46356351f9d7d5e8791d12",
+  measurementId: "G-SP5GL54PGS"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // Enable offline persistence so app works without internet
-db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+  if (err.code === 'failed-precondition') {
+    // Multiple tabs open — persistence can only be enabled in one tab at a time
+    console.warn('Persistence failed: multiple tabs open');
+  } else if (err.code === 'unimplemented') {
+    // Browser doesn't support persistence
+    console.warn('Persistence not supported in this browser');
+  }
+});
 
 // ============================================================
 //  SESSION
@@ -721,6 +730,13 @@ function subscribeToData() {
   }, err => {
     console.error('Visits sync error:', err);
     updateSyncStatus(false);
+    if (err.code === 'permission-denied') {
+      showToast('Error: Firestore rules blocking access. Check Rules in Firebase Console.');
+    } else if (err.code === 'unavailable') {
+      showToast('Firestore not reachable. Check internet or if Firestore is enabled.');
+    } else {
+      showToast('Sync error: ' + err.message);
+    }
   });
 
   // Listen to clinics
@@ -729,6 +745,7 @@ function subscribeToData() {
     renderAll();
   }, err => {
     console.error('Clinics sync error:', err);
+    showToast('Clinics sync error: ' + err.message);
   });
 }
 
