@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetCare Clinic Tracker</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #dc2626;
+    --orange: #ea580c;
+    --purple: #7c3aed;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header-actions { display: flex; gap: 8px; }
+  .header-actions button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+  }
+  .header-actions button:hover { background: rgba(255,255,255,0.35); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 12px 20px 0;
+  }
+  .tab {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .tab .badge {
+    background: var(--danger);
+    color: white;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    font-weight: 700;
+  }
+
+  /* Content */
+  .content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px 20px;
+  }
+
+  /* Dashboard cards */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .stat-card .label { font-size: 12px; color: var(--text-light); margin-bottom: 4px; }
+  .stat-card .value { font-size: 28px; font-weight: 800; }
+  .stat-card.due .value { color: var(--danger); }
+  .stat-card.pending .value { color: var(--warning); }
+  .stat-card.ordered .value { color: var(--success); }
+  .stat-card.total .value { color: var(--primary); }
+
+  /* Section headers */
+  .section-header {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 20px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Visit cards */
+  .visit-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid var(--border);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+  .visit-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .visit-card.status-doctor-unavailable { border-left-color: var(--orange); }
+  .visit-card.status-samples-given { border-left-color: var(--warning); }
+  .visit-card.status-order-received { border-left-color: var(--success); }
+  .visit-card.status-no-order { border-left-color: var(--danger); }
+  .visit-card.status-follow-up-scheduled { border-left-color: var(--purple); }
+  .visit-card.status-visit-later { border-left-color: var(--text-light); }
+
+  .visit-card .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+  .visit-card .clinic-name { font-weight: 700; font-size: 15px; }
+  .visit-card .visit-date { font-size: 12px; color: var(--text-light); }
+  .visit-card .doctor-name { font-size: 13px; color: var(--text-light); margin-bottom: 6px; }
+
+  .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+  }
+  .status-badge.doctor-unavailable { background: var(--orange); }
+  .status-badge.samples-given { background: var(--warning); color: #000; }
+  .status-badge.order-received { background: var(--success); }
+  .status-badge.no-order { background: var(--danger); }
+  .status-badge.follow-up-scheduled { background: var(--purple); }
+  .status-badge.visit-later { background: var(--text-light); }
+
+  .visit-card .meta-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-light);
+    flex-wrap: wrap;
+  }
+  .visit-card .meta-row span { display: flex; align-items: center; gap: 4px; }
+  .overdue { color: var(--danger) !important; font-weight: 700; }
+  .due-today { color: var(--warning) !important; font-weight: 700; }
+  .visit-card .notes { font-size: 13px; color: var(--text-light); margin-top: 6px; font-style: italic; }
+  .visit-card .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .visit-card .actions button {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .visit-card .actions button:hover { background: var(--bg); }
+  .visit-card .actions .btn-log { border-color: var(--primary); color: var(--primary); }
+  .visit-card .actions .btn-edit { border-color: var(--text-light); color: var(--text-light); }
+  .visit-card .actions .btn-delete { border-color: var(--danger); color: var(--danger); }
+
+  /* Clinic list */
+  .clinic-item {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clinic-item .info .name { font-weight: 700; font-size: 15px; }
+  .clinic-item .info .address { font-size: 13px; color: var(--text-light); }
+  .clinic-item .info .doctor { font-size: 13px; color: var(--text-light); }
+  .clinic-item .clinic-actions { display: flex; gap: 6px; }
+  .clinic-item .clinic-actions button {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  /* Fab */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+    z-index: 50;
+  }
+  .fab:hover { transform: scale(1.1); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px 20px;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @media (min-width: 600px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 16px; max-height: 80vh; }
+  }
+  .modal h2 { font-size: 18px; margin-bottom: 16px; }
+  .modal .form-group { margin-bottom: 14px; }
+  .modal label { display: block; font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus {
+    border-color: var(--primary);
+  }
+  .modal textarea { resize: vertical; min-height: 60px; }
+  .modal .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+  .modal .btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .modal .btn:hover { opacity: 0.9; }
+  .modal .btn-primary { background: var(--primary); color: white; }
+  .modal .btn-cancel { background: var(--bg); color: var(--text); }
+
+  /* Search */
+  .search-bar {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    outline: none;
+    background: var(--card);
+  }
+  .search-bar:focus { border-color: var(--primary); }
+
+  /* Filter row */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .filter-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .filter-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  /* Visit history inside clinic */
+  .visit-history { margin-top: 8px; }
+  .visit-mini {
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .visit-mini .top { display: flex; justify-content: space-between; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 300;
+    animation: fadeIn 0.3s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; } }
+
+  /* Sync indicator */
+  .sync-info {
+    text-align: center;
+    padding: 8px;
+    font-size: 11px;
+    color: var(--text-light);
+  }
+
+  .hidden { display: none !important; }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .header h1 { font-size: 17px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .tab { padding: 8px 14px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>PetCare Clinic Tracker</h1>
+    <div class="header-actions">
+      <button onclick="exportData()" title="Export">Export</button>
+      <button onclick="document.getElementById('importFile').click()" title="Import">Import</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="tab" data-tab="visits" onclick="switchTab('visits')">Visits</button>
+  <button class="tab" data-tab="clinics" onclick="switchTab('clinics')">Clinics</button>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div class="content tab-content" id="tab-dashboard">
+  <div class="stats">
+    <div class="stat-card due"><div class="label">Due Today</div><div class="value" id="stat-due">0</div></div>
+    <div class="stat-card pending"><div class="label">Samples Pending</div><div class="value" id="stat-pending">0</div></div>
+    <div class="stat-card ordered"><div class="label">Orders This Month</div><div class="value" id="stat-orders">0</div></div>
+    <div class="stat-card total"><div class="label">Total Clinics</div><div class="value" id="stat-clinics">0</div></div>
+  </div>
+
+  <div class="section-header" id="overdue-header">Overdue Follow-ups</div>
+  <div id="overdue-list"></div>
+
+  <div class="section-header">Due Today</div>
+  <div id="today-list"></div>
+
+  <div class="section-header">Upcoming (Next 3 Days)</div>
+  <div id="upcoming-list"></div>
+</div>
+
+<!-- ===== VISITS ===== -->
+<div class="content tab-content hidden" id="tab-visits">
+  <input type="text" class="search-bar" placeholder="Search clinic, doctor, or notes..." oninput="renderVisits()" id="visit-search">
+  <div class="filter-row">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+    <button class="filter-btn" data-filter="doctor-unavailable" onclick="setFilter('doctor-unavailable')">Doctor Unavailable</button>
+    <button class="filter-btn" data-filter="samples-given" onclick="setFilter('samples-given')">Samples Given</button>
+    <button class="filter-btn" data-filter="follow-up-scheduled" onclick="setFilter('follow-up-scheduled')">Follow-up</button>
+    <button class="filter-btn" data-filter="order-received" onclick="setFilter('order-received')">Ordered</button>
+    <button class="filter-btn" data-filter="no-order" onclick="setFilter('no-order')">No Order</button>
+    <button class="filter-btn" data-filter="visit-later" onclick="setFilter('visit-later')">Visit Later</button>
+  </div>
+  <div id="visits-list"></div>
+</div>
+
+<!-- ===== CLINICS ===== -->
+<div class="content tab-content hidden" id="tab-clinics">
+  <input type="text" class="search-bar" placeholder="Search clinics..." oninput="renderClinics()" id="clinic-search">
+  <div id="clinics-list"></div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddVisit()" title="Log new visit">+</button>
+
+<!-- ===== MODAL: Add/Edit Visit ===== -->
+<div class="modal-overlay" id="modal-visit">
+  <div class="modal">
+    <h2 id="modal-visit-title">Log Clinic Visit</h2>
+    <input type="hidden" id="v-id">
+    <div class="form-group">
+      <label>Clinic Name *</label>
+      <input type="text" id="v-clinic" list="clinic-suggestions" placeholder="Type or select clinic..." required>
+      <datalist id="clinic-suggestions"></datalist>
+    </div>
+    <div class="form-group">
+      <label>Clinic Type</label>
+      <select id="v-clinic-type">
+        <option value="clinic">Pet Clinic</option>
+        <option value="store">Pet Store</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Doctor / Contact Name</label>
+      <input type="text" id="v-doctor" placeholder="Dr. name or contact person">
+    </div>
+    <div class="form-group">
+      <label>Visit Date *</label>
+      <input type="date" id="v-date" required>
+    </div>
+    <div class="form-group">
+      <label>Status *</label>
+      <select id="v-status" required>
+        <option value="doctor-unavailable">Doctor Unavailable</option>
+        <option value="samples-given">Samples Given</option>
+        <option value="follow-up-scheduled">Follow-up Scheduled</option>
+        <option value="order-received">Order Received</option>
+        <option value="no-order">No Order</option>
+        <option value="visit-later">Asked to Visit Later</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Next Follow-up Date</label>
+      <input type="date" id="v-followup">
+    </div>
+    <div class="form-group">
+      <label>Products Sampled / Ordered</label>
+      <input type="text" id="v-products" placeholder="e.g., Joint Support, Skin Coat...">
+    </div>
+    <div class="form-group">
+      <label>Order Amount (if ordered)</label>
+      <input type="number" id="v-amount" placeholder="0" min="0">
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="v-notes" placeholder="Any additional details..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Logged By</label>
+      <input type="text" id="v-person" placeholder="Your name">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeModal('modal-visit')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVisit()">Save Visit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Add/Edit Clinic ===== -->
+<div class="modal-overlay" id="modal-clinic">
+  <div class="modal">
+    <h2 id="modal-clinic-title">Add Clinic</h2>
+    <input type="hidden" id="c-id">
+    <div class="form-group">
+      <label>Clinic / Store Name *</label>
+      <input type="text" id="c-name" required>
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <select id="c-type">
+        <option value="clinic">Pet Clinic</option>
+        <option value="store">Pet Store</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Doctor / Contact Name</label>
+      <input type="text" id="c-doctor">
+    </div>
+    <div class="form-group">
+      <label>Address / Area</label>
+      <input type="text" id="c-address" placeholder="Location or area">
+    </div>
+    <div class="form-group">
+      <label>Phone</label>
+      <input type="tel" id="c-phone" placeholder="Phone number">
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="c-notes" placeholder="Best time to visit, preferences, etc."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeModal('modal-clinic')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClinic()">Save Clinic</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: Visit Detail ===== -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <h2>Visit Details</h2>
+    <div id="detail-content"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-cancel" onclick="closeModal('modal-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA LAYER ====================
+const STORAGE_KEY = 'petcare_tracker';
+
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) return JSON.parse(raw);
+  return { clinics: [], visits: [], settings: { lastPerson: '' } };
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let data = loadData();
+let currentFilter = 'all';
+let currentTab = 'dashboard';
+
+// ==================== UTILITIES ====================
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return Infinity;
+  const today = new Date(todayStr() + 'T00:00:00');
+  const target = new Date(dateStr + 'T00:00:00');
+  return Math.round((target - today) / (1000 * 60 * 60 * 24));
+}
+
+function statusLabel(status) {
+  const map = {
+    'doctor-unavailable': 'Doctor Unavailable',
+    'samples-given': 'Samples Given',
+    'follow-up-scheduled': 'Follow-up Scheduled',
+    'order-received': 'Order Received',
+    'no-order': 'No Order',
+    'visit-later': 'Visit Later'
+  };
+  return map[status] || status;
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ==================== TABS ====================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  renderAll();
+}
+
+// ==================== MODALS ====================
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => {
+    if (e.target === o) o.classList.remove('active');
+  });
+});
+
+// ==================== CLINIC SUGGESTIONS ====================
+function updateClinicSuggestions() {
+  const dl = document.getElementById('clinic-suggestions');
+  dl.innerHTML = '';
+  const names = [...new Set(data.clinics.map(c => c.name))];
+  // Also add clinic names from visits that aren't in clinics list
+  data.visits.forEach(v => {
+    if (!names.includes(v.clinic)) names.push(v.clinic);
+  });
+  names.sort().forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    dl.appendChild(opt);
+  });
+}
+
+// ==================== VISIT CRUD ====================
+function openAddVisit() {
+  document.getElementById('modal-visit-title').textContent = 'Log Clinic Visit';
+  document.getElementById('v-id').value = '';
+  document.getElementById('v-clinic').value = '';
+  document.getElementById('v-clinic-type').value = 'clinic';
+  document.getElementById('v-doctor').value = '';
+  document.getElementById('v-date').value = todayStr();
+  document.getElementById('v-status').value = 'samples-given';
+  document.getElementById('v-followup').value = '';
+  document.getElementById('v-products').value = '';
+  document.getElementById('v-amount').value = '';
+  document.getElementById('v-notes').value = '';
+  document.getElementById('v-person').value = data.settings.lastPerson || '';
+  updateClinicSuggestions();
+  openModal('modal-visit');
+}
+
+function editVisit(id) {
+  const v = data.visits.find(x => x.id === id);
+  if (!v) return;
+  document.getElementById('modal-visit-title').textContent = 'Edit Visit';
+  document.getElementById('v-id').value = v.id;
+  document.getElementById('v-clinic').value = v.clinic;
+  document.getElementById('v-clinic-type').value = v.clinicType || 'clinic';
+  document.getElementById('v-doctor').value = v.doctor || '';
+  document.getElementById('v-date').value = v.date;
+  document.getElementById('v-status').value = v.status;
+  document.getElementById('v-followup').value = v.followup || '';
+  document.getElementById('v-products').value = v.products || '';
+  document.getElementById('v-amount').value = v.amount || '';
+  document.getElementById('v-notes').value = v.notes || '';
+  document.getElementById('v-person').value = v.person || '';
+  updateClinicSuggestions();
+  openModal('modal-visit');
+}
+
+function saveVisit() {
+  const clinic = document.getElementById('v-clinic').value.trim();
+  const date = document.getElementById('v-date').value;
+  const status = document.getElementById('v-status').value;
+  if (!clinic || !date || !status) {
+    showToast('Please fill in required fields');
+    return;
+  }
+
+  const visit = {
+    id: document.getElementById('v-id').value || genId(),
+    clinic,
+    clinicType: document.getElementById('v-clinic-type').value,
+    doctor: document.getElementById('v-doctor').value.trim(),
+    date,
+    status,
+    followup: document.getElementById('v-followup').value || null,
+    products: document.getElementById('v-products').value.trim(),
+    amount: parseFloat(document.getElementById('v-amount').value) || 0,
+    notes: document.getElementById('v-notes').value.trim(),
+    person: document.getElementById('v-person').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  // Save person preference
+  if (visit.person) data.settings.lastPerson = visit.person;
+
+  const idx = data.visits.findIndex(x => x.id === visit.id);
+  if (idx >= 0) {
+    data.visits[idx] = visit;
+  } else {
+    data.visits.push(visit);
+  }
+
+  // Auto-add clinic if new
+  if (!data.clinics.find(c => c.name.toLowerCase() === clinic.toLowerCase())) {
+    data.clinics.push({
+      id: genId(),
+      name: clinic,
+      type: visit.clinicType,
+      doctor: visit.doctor,
+      address: '',
+      phone: '',
+      notes: ''
+    });
+  }
+
+  saveData(data);
+  closeModal('modal-visit');
+  renderAll();
+  showToast(idx >= 0 ? 'Visit updated' : 'Visit logged');
+}
+
+function deleteVisit(id) {
+  if (!confirm('Delete this visit record?')) return;
+  data.visits = data.visits.filter(x => x.id !== id);
+  saveData(data);
+  renderAll();
+  showToast('Visit deleted');
+}
+
+function logFollowUp(visitId) {
+  const orig = data.visits.find(x => x.id === visitId);
+  if (!orig) return;
+  document.getElementById('modal-visit-title').textContent = 'Log Follow-up Visit';
+  document.getElementById('v-id').value = '';
+  document.getElementById('v-clinic').value = orig.clinic;
+  document.getElementById('v-clinic-type').value = orig.clinicType || 'clinic';
+  document.getElementById('v-doctor').value = orig.doctor || '';
+  document.getElementById('v-date').value = todayStr();
+  document.getElementById('v-status').value = 'samples-given';
+  document.getElementById('v-followup').value = '';
+  document.getElementById('v-products').value = orig.products || '';
+  document.getElementById('v-amount').value = '';
+  document.getElementById('v-notes').value = '';
+  document.getElementById('v-person').value = data.settings.lastPerson || '';
+  updateClinicSuggestions();
+  openModal('modal-visit');
+}
+
+// ==================== CLINIC CRUD ====================
+function openAddClinic() {
+  document.getElementById('modal-clinic-title').textContent = 'Add Clinic';
+  document.getElementById('c-id').value = '';
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-type').value = 'clinic';
+  document.getElementById('c-doctor').value = '';
+  document.getElementById('c-address').value = '';
+  document.getElementById('c-phone').value = '';
+  document.getElementById('c-notes').value = '';
+  openModal('modal-clinic');
+}
+
+function editClinic(id) {
+  const c = data.clinics.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('modal-clinic-title').textContent = 'Edit Clinic';
+  document.getElementById('c-id').value = c.id;
+  document.getElementById('c-name').value = c.name;
+  document.getElementById('c-type').value = c.type || 'clinic';
+  document.getElementById('c-doctor').value = c.doctor || '';
+  document.getElementById('c-address').value = c.address || '';
+  document.getElementById('c-phone').value = c.phone || '';
+  document.getElementById('c-notes').value = c.notes || '';
+  openModal('modal-clinic');
+}
+
+function saveClinic() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { showToast('Clinic name is required'); return; }
+
+  const clinic = {
+    id: document.getElementById('c-id').value || genId(),
+    name,
+    type: document.getElementById('c-type').value,
+    doctor: document.getElementById('c-doctor').value.trim(),
+    address: document.getElementById('c-address').value.trim(),
+    phone: document.getElementById('c-phone').value.trim(),
+    notes: document.getElementById('c-notes').value.trim()
+  };
+
+  const idx = data.clinics.findIndex(x => x.id === clinic.id);
+  if (idx >= 0) {
+    data.clinics[idx] = clinic;
+  } else {
+    data.clinics.push(clinic);
+  }
+
+  saveData(data);
+  closeModal('modal-clinic');
+  renderAll();
+  showToast(idx >= 0 ? 'Clinic updated' : 'Clinic added');
+}
+
+function deleteClinic(id) {
+  const c = data.clinics.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Delete "${c.name}"? Visit records will remain.`)) return;
+  data.clinics = data.clinics.filter(x => x.id !== id);
+  saveData(data);
+  renderAll();
+  showToast('Clinic deleted');
+}
+
+// ==================== RENDERING ====================
+function renderVisitCard(v, showActions = true) {
+  const days = daysUntil(v.followup);
+  let dueClass = '';
+  let dueText = '';
+  if (v.followup) {
+    if (days < 0) { dueClass = 'overdue'; dueText = `Overdue by ${Math.abs(days)}d`; }
+    else if (days === 0) { dueClass = 'due-today'; dueText = 'Due today'; }
+    else { dueText = `In ${days}d`; }
+  }
+
+  return `
+    <div class="visit-card status-${v.status}">
+      <div class="top-row">
+        <div class="clinic-name">${escHtml(v.clinic)}</div>
+        <div class="visit-date">${formatDate(v.date)}</div>
+      </div>
+      ${v.doctor ? `<div class="doctor-name">Dr. ${escHtml(v.doctor)}</div>` : ''}
+      <span class="status-badge ${v.status}">${statusLabel(v.status)}</span>
+      <div class="meta-row">
+        ${v.followup ? `<span class="${dueClass}">Follow-up: ${formatDate(v.followup)} (${dueText})</span>` : ''}
+        ${v.products ? `<span>Products: ${escHtml(v.products)}</span>` : ''}
+        ${v.amount ? `<span>Amount: ₹${v.amount}</span>` : ''}
+        ${v.person ? `<span>By: ${escHtml(v.person)}</span>` : ''}
+      </div>
+      ${v.notes ? `<div class="notes">"${escHtml(v.notes)}"</div>` : ''}
+      ${showActions ? `
+      <div class="actions">
+        <button class="btn-log" onclick="logFollowUp('${v.id}')">Log Follow-up</button>
+        <button class="btn-edit" onclick="editVisit('${v.id}')">Edit</button>
+        <button class="btn-delete" onclick="deleteVisit('${v.id}')">Delete</button>
+      </div>` : ''}
+    </div>
+  `;
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderDashboard() {
+  const today = todayStr();
+  const monthStart = today.slice(0, 7);
+
+  // Get latest visit per clinic for follow-up tracking
+  const latestByClinic = {};
+  data.visits.sort((a, b) => a.date.localeCompare(b.date)).forEach(v => {
+    latestByClinic[v.clinic.toLowerCase()] = v;
+  });
+  const latestVisits = Object.values(latestByClinic);
+
+  const overdue = latestVisits.filter(v => v.followup && daysUntil(v.followup) < 0 && v.status !== 'order-received' && v.status !== 'no-order');
+  const dueToday = latestVisits.filter(v => v.followup && daysUntil(v.followup) === 0 && v.status !== 'order-received' && v.status !== 'no-order');
+  const upcoming = latestVisits.filter(v => v.followup && daysUntil(v.followup) > 0 && daysUntil(v.followup) <= 3 && v.status !== 'order-received' && v.status !== 'no-order');
+  const pendingSamples = latestVisits.filter(v => v.status === 'samples-given' || v.status === 'follow-up-scheduled');
+  const ordersThisMonth = data.visits.filter(v => v.status === 'order-received' && v.date.startsWith(monthStart));
+
+  // Stats
+  document.getElementById('stat-due').textContent = overdue.length + dueToday.length;
+  document.getElementById('stat-pending').textContent = pendingSamples.length;
+  document.getElementById('stat-orders').textContent = ordersThisMonth.length;
+  document.getElementById('stat-clinics').textContent = data.clinics.length;
+
+  // Update tab badge
+  const dueBadge = overdue.length + dueToday.length;
+  const dashTab = document.querySelector('[data-tab="dashboard"]');
+  dashTab.innerHTML = 'Dashboard' + (dueBadge > 0 ? `<span class="badge">${dueBadge}</span>` : '');
+
+  // Overdue
+  const overdueEl = document.getElementById('overdue-list');
+  const overdueHeader = document.getElementById('overdue-header');
+  if (overdue.length === 0) {
+    overdueEl.innerHTML = '';
+    overdueHeader.classList.add('hidden');
+  } else {
+    overdueHeader.classList.remove('hidden');
+    overdueEl.innerHTML = overdue.sort((a, b) => a.followup.localeCompare(b.followup)).map(v => renderVisitCard(v)).join('');
+  }
+
+  // Today
+  const todayEl = document.getElementById('today-list');
+  if (dueToday.length === 0) {
+    todayEl.innerHTML = '<div class="empty-state"><p>No follow-ups due today</p></div>';
+  } else {
+    todayEl.innerHTML = dueToday.map(v => renderVisitCard(v)).join('');
+  }
+
+  // Upcoming
+  const upEl = document.getElementById('upcoming-list');
+  if (upcoming.length === 0) {
+    upEl.innerHTML = '<div class="empty-state"><p>No upcoming follow-ups in the next 3 days</p></div>';
+  } else {
+    upEl.innerHTML = upcoming.sort((a, b) => a.followup.localeCompare(b.followup)).map(v => renderVisitCard(v)).join('');
+  }
+}
+
+function renderVisits() {
+  const search = document.getElementById('visit-search').value.toLowerCase();
+  let visits = [...data.visits].sort((a, b) => b.date.localeCompare(a.date));
+
+  if (currentFilter !== 'all') {
+    visits = visits.filter(v => v.status === currentFilter);
+  }
+  if (search) {
+    visits = visits.filter(v =>
+      v.clinic.toLowerCase().includes(search) ||
+      (v.doctor || '').toLowerCase().includes(search) ||
+      (v.notes || '').toLowerCase().includes(search) ||
+      (v.products || '').toLowerCase().includes(search)
+    );
+  }
+
+  const el = document.getElementById('visits-list');
+  if (visits.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No visits found. Tap + to log your first visit.</p></div>';
+  } else {
+    el.innerHTML = visits.map(v => renderVisitCard(v)).join('');
+  }
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+  renderVisits();
+}
+
+function renderClinics() {
+  const search = document.getElementById('clinic-search').value.toLowerCase();
+  let clinics = [...data.clinics].sort((a, b) => a.name.localeCompare(b.name));
+
+  if (search) {
+    clinics = clinics.filter(c =>
+      c.name.toLowerCase().includes(search) ||
+      (c.doctor || '').toLowerCase().includes(search) ||
+      (c.address || '').toLowerCase().includes(search)
+    );
+  }
+
+  const el = document.getElementById('clinics-list');
+  if (clinics.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🏥</div><p>No clinics yet.</p></div>
+      <div style="text-align:center;margin-top:12px"><button class="btn btn-primary" style="padding:10px 24px;border:none;border-radius:8px;font-size:14px;cursor:pointer;background:#2563eb;color:white" onclick="openAddClinic()">Add First Clinic</button></div>`;
+  } else {
+    el.innerHTML = clinics.map(c => {
+      const visitCount = data.visits.filter(v => v.clinic.toLowerCase() === c.name.toLowerCase()).length;
+      const lastVisit = data.visits
+        .filter(v => v.clinic.toLowerCase() === c.name.toLowerCase())
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+
+      return `
+        <div class="clinic-item">
+          <div class="info">
+            <div class="name">${escHtml(c.name)} <span style="font-size:11px;color:var(--text-light)">(${c.type === 'store' ? 'Store' : 'Clinic'})</span></div>
+            ${c.doctor ? `<div class="doctor">Dr. ${escHtml(c.doctor)}</div>` : ''}
+            ${c.address ? `<div class="address">${escHtml(c.address)}</div>` : ''}
+            ${c.phone ? `<div class="address">Ph: ${escHtml(c.phone)}</div>` : ''}
+            <div class="address">${visitCount} visit${visitCount !== 1 ? 's' : ''}${lastVisit ? ` · Last: ${formatDate(lastVisit.date)} · ${statusLabel(lastVisit.status)}` : ''}</div>
+          </div>
+          <div class="clinic-actions">
+            <button onclick="editClinic('${c.id}')">Edit</button>
+            <button onclick="deleteClinic('${c.id}')" style="color:var(--danger)">Del</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function renderAll() {
+  if (currentTab === 'dashboard') renderDashboard();
+  if (currentTab === 'visits') renderVisits();
+  if (currentTab === 'clinics') renderClinics();
+}
+
+// ==================== EXPORT / IMPORT ====================
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `petcare-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Data exported');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.visits || !imported.clinics) {
+        showToast('Invalid file format');
+        return;
+      }
+
+      // Merge strategy: add records that don't exist by ID
+      let newVisits = 0, newClinics = 0;
+      const existingVisitIds = new Set(data.visits.map(v => v.id));
+      const existingClinicIds = new Set(data.clinics.map(c => c.id));
+
+      imported.visits.forEach(v => {
+        if (!existingVisitIds.has(v.id)) {
+          data.visits.push(v);
+          newVisits++;
+        }
+      });
+      imported.clinics.forEach(c => {
+        if (!existingClinicIds.has(c.id)) {
+          data.clinics.push(c);
+          newClinics++;
+        }
+      });
+
+      saveData(data);
+      renderAll();
+      showToast(`Imported ${newVisits} visits, ${newClinics} clinics`);
+    } catch (err) {
+      showToast('Error reading file');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ==================== BROWSER NOTIFICATIONS ====================
+function checkReminders() {
+  if (!('Notification' in window)) return;
+
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  if (Notification.permission !== 'granted') return;
+
+  const today = todayStr();
+  const latestByClinic = {};
+  data.visits.forEach(v => {
+    const key = v.clinic.toLowerCase();
+    if (!latestByClinic[key] || v.date > latestByClinic[key].date) {
+      latestByClinic[key] = v;
+    }
+  });
+
+  const due = Object.values(latestByClinic).filter(v =>
+    v.followup && v.followup <= today &&
+    v.status !== 'order-received' && v.status !== 'no-order'
+  );
+
+  if (due.length > 0) {
+    const notifKey = 'petcare_notif_' + today;
+    if (!sessionStorage.getItem(notifKey)) {
+      new Notification('PetCare Follow-ups Due', {
+        body: `${due.length} clinic${due.length > 1 ? 's' : ''} need follow-up today!`,
+        icon: '🐾'
+      });
+      sessionStorage.setItem(notifKey, '1');
+    }
+  }
+}
+
+// Check reminders every 30 minutes
+checkReminders();
+setInterval(checkReminders, 30 * 60 * 1000);
+
+// ==================== INIT ====================
+renderAll();
+</script>
+</body>
+</html>
